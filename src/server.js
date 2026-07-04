@@ -1,3 +1,5 @@
+console.log("✅ server.js started");
+
 require("dotenv").config();
 
 const app = require("./app");
@@ -13,6 +15,8 @@ const PORT = process.env.PORT || 5000;
     console.error("❌ Database Error:");
     console.error(err);
   }
+
+  console.log("✅ About to start Express");
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on ${PORT}`);
