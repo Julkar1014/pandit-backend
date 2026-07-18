@@ -5,7 +5,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-
+const pool = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const pujaRoutes = require("./routes/puja.routes");
 const bookingRoutes = require("./routes/booking.routes");
@@ -14,7 +14,12 @@ const reviewRoutes = require("./routes/review.routes");
 const app = express();
 
 // Middlewares
-app.use(cors());
+app.use(
+  cors({
+  origin: process.env.FRONTEND_URL,
+    credentials: true,
+  })
+);
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -31,19 +36,72 @@ app.use(
   "/uploads",
   express.static(path.join(__dirname, "../uploads"))
 );
+// Serve React Frontend
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/pujas", pujaRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+   const [rows] = await pool.query(
+  "SELECT slug FROM pujas"
+);
 
-// Test Route
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Pandit Booking Backend Running 🚀",
-  });
+    const baseUrl = "https://panditjiigreaternoida.com";
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+<url>
+<loc>${baseUrl}/</loc>
+<priority>1.0</priority>
+</url>
+
+<url>
+<loc>${baseUrl}/services</loc>
+<priority>0.9</priority>
+</url>
+
+<url>
+<loc>${baseUrl}/about</loc>
+<priority>0.8</priority>
+</url>
+
+<url>
+<loc>${baseUrl}/reviews</loc>
+<priority>0.8</priority>
+</url>
+
+<url>
+<loc>${baseUrl}/contact</loc>
+<priority>0.8</priority>
+</url>`;
+
+    rows.forEach((item) => {
+      xml += `
+<url>
+<loc>${baseUrl}/services/${item.slug}</loc>
+</url>`;
+    });
+
+    xml += `
+</urlset>`;
+
+    res.header("Content-Type", "application/xml");
+    res.send(xml);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Sitemap Error");
+  }
+});
+// React Routes
+// React Routes (must be after all API routes)
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "../public", "index.html"));
 });
 
 module.exports = app;
