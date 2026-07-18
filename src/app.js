@@ -14,9 +14,25 @@ const reviewRoutes = require("./routes/review.routes");
 const app = express();
 
 // Middlewares
+const allowedOrigins = [
+  "https://panditjiigreaternoida.com",
+  "https://www.panditjiigreaternoida.com",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
 app.use(
   cors({
-  origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // Postman ya direct server requests
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
